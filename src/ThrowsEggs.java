@@ -1,12 +1,16 @@
 
 import org.dreambot.api.methods.Calculations;
 import org.dreambot.api.methods.container.impl.Inventory;
+import org.dreambot.api.methods.container.impl.Shop;
 import org.dreambot.api.methods.container.impl.bank.Bank;
+import org.dreambot.api.methods.container.impl.bank.BankLocation;
 import org.dreambot.api.methods.container.impl.bank.BankMode;
 import org.dreambot.api.methods.container.impl.equipment.Equipment;
 import org.dreambot.api.methods.container.impl.equipment.EquipmentSlot;
 import org.dreambot.api.methods.filter.Filter;
+import org.dreambot.api.methods.interactive.NPCs;
 import org.dreambot.api.methods.interactive.Players;
+import org.dreambot.api.methods.map.Tile;
 import org.dreambot.api.methods.walking.impl.Walking;
 import org.dreambot.api.script.AbstractScript;
 import org.dreambot.api.script.Category;
@@ -15,6 +19,7 @@ import org.dreambot.api.script.listener.ChatListener;
 import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 import org.dreambot.api.utilities.Timer;
+import org.dreambot.api.wrappers.interactive.NPC;
 import org.dreambot.api.wrappers.interactive.Player;
 import org.dreambot.api.wrappers.items.Item;
 import org.dreambot.api.wrappers.widgets.message.Message;
@@ -41,25 +46,129 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
     public static boolean playerBusy = false;
     public static boolean playerIron = false;
     public static int eggCount = 0;
+    public static int eggStock = 0;
+    public static boolean buyMoreEggs = true;
+
+    public static boolean noMoCoins = false;
+
+    final int GREEN_EGG = 22358;
+    final int BLUE_EGG = 22355;
+    final int RED_EGG = 22361;
+    final Tile DIANGO_TILE = new Tile(3081,3247,0);
+    final Filter<Item> eggFilter = i -> i.getName().equals("Holy handegg") || i.getName().equals("Peaceful handegg") || i.getName().equals("Chaotic handegg");
     @Override
     public int onLoop() {
+        eggStock = Bank.count(eggFilter) + Inventory.count(eggFilter);
+        if (!Walking.isRunEnabled() && Walking.getRunEnergy() > 10 ) {
+            if (Walking.toggleRun()) {
+                Sleep.sleepTick();
+            }
+            return Calculations.random(300,800);
+        }
+        if (buyMoreEggs) {
+            if (Bank.count(eggFilter) > 1000 || noMoCoins) {
+                if (BankLocation.GRAND_EXCHANGE.getCenter().distance() > 10) {
+                    if (Walking.shouldWalk()) {
+                        Walking.walk(BankLocation.GRAND_EXCHANGE);
+                    }
+                    Sleep.sleepTicks(Calculations.random(1,7));
+                    return Calculations.random(300,800);
+                }
+                buyMoreEggs = false;
+                noMoCoins = false;
+                return Calculations.random(300,800);
+            }
+            if (Bank.isOpen()) {
+                if (Bank.depositAllExcept(995)) {
+                    if (!Bank.contains(995)) {
+                        if (!Inventory.contains(995)) {
+                            Sleep.sleepTicks(2);
+                            if (!Inventory.contains(995)) {
+                                if (!Bank.contains(eggFilter) && !Inventory.contains(eggFilter)) {
+                                    Logger.log("All out of money and eggs :-( Stopping script...");
+                                    return -1;
+                                }
+                                Logger.log("No more coins to buy eggs! But have some eggs");
+                                noMoCoins = true;
+                                return Calculations.random(300,800);
+                            }
+                        }
+                        Bank.close();
+                    }
+                    Bank.withdrawAll(995);
+                    Sleep.sleepTick();
+                }
+                return Calculations.random(300,800);
+            }
+            if (Inventory.isFull() || !Inventory.contains(995)) {
+                if (Shop.isOpen()) {
+                    if (!Shop.close()) {
+                        return Calculations.random(300,800);
+                    }
+                }
+                if (Walking.shouldWalk()) {
+                    Bank.open();
+                    Sleep.sleepTicks(Calculations.random(1,7));
+                }
+                return Calculations.random(300,800);
+            }
+            if (Shop.isOpen()) {
+                int randEgg;
+                int randCalc = Calculations.random(1,100);
+                if (randCalc <= 33) {
+                    randEgg = GREEN_EGG;
+                } else if (randCalc <= 66) {
+                    randEgg = BLUE_EGG;
+                } else {
+                    randEgg = RED_EGG;
+                }
+                if (Shop.get(randEgg).interact("Buy 50")) {
+                    Sleep.sleepTicks(2);
+                }
+                return Calculations.random(300,800);
+            }
+            if (DIANGO_TILE.distance() > 15) {
+                if (Walking.shouldWalk()) {
+                    Walking.walk(DIANGO_TILE);
+                    Sleep.sleepTicks(Calculations.random(1,7));
+                }
+                return Calculations.random(300,800);
+            }
+            NPC diango = NPCs.closest("Diango");
+            if (diango == null) {
+                if (DIANGO_TILE.equals(Players.getLocal().getTile())) {
+                    Logger.log("Diango is deleted from the game, stopping script");
+                    return -1;
+                }
+                if (Walking.shouldWalk()) {
+                    Walking.walk(DIANGO_TILE);
+                    Sleep.sleepTicks(Calculations.random(1,7));
+                }
+                return Calculations.random(300,800);
+            }
+            if (diango.interact("Trade")) {
+                Sleep.sleepUntil(() -> Shop.isOpen(), () -> Players.getLocal().isMoving(), 4000, 100);
+            }
+            return Calculations.random(300,800);
+        }
         if (eggWieldCheck) {
             Equipment.interact(EquipmentSlot.WEAPON, "Remove");
             Sleep.sleepTicks(2);
             return Calculations.random(300,800);
         }
-        Filter<Item> eggFilter = i -> i.getName().equals("Holy handegg") || i.getName().equals("Peaceful handegg") || i.getName().equals("Chaotic handegg");
+
         Item egg = Inventory.get(eggFilter);
         if (egg == null) {
             if (!Bank.isOpen()) {
                 if (Walking.shouldWalk()) {
                     Bank.open();
+                    Sleep.sleepTicks(Calculations.random(1,7));
                 }
                 return Calculations.random(300,800);
             }
             if (!Bank.contains(eggFilter)) {
-                Logger.log("No more eggs ! Stopping script...");
-                return -1;
+                Logger.log("No more eggs ! Buying more...");
+                buyMoreEggs = true;
             }
             if (Bank.getWithdrawMode() != BankMode.ITEM) {
                 Bank.setWithdrawMode(BankMode.ITEM);
@@ -109,7 +218,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             return;
         }
         if (egg.useOn(p)) {
-            Sleep.sleepUntil(() -> gotMessage(), () -> Players.getLocal().isMoving(), 4200, 69);
+            Sleep.sleepUntil(() -> gotMessage(), () -> Players.getLocal().isMoving() || Players.getLocal().getInteractingCharacter() != null, 4200, 69);
         }
         if (playerBusy) {
             Logger.log("Player: " + p.getName()+" busy, gonna try later...");
@@ -180,6 +289,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
 
         return new String[] {
                 getManifest().name() +" "+ getManifest().version() + " by Dreambotter420 ^_^",
+                "Egg stock: "+eggStock,
                 "Players egged: "+eggCount
         };
     }
