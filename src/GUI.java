@@ -59,10 +59,16 @@ public class GUI {
         if (input.contains(",")) {
             String[] parts = input.split(",");
             for (String part : parts) {
-                result.add(part.trim().toLowerCase(Locale.ROOT));
+                String processed = part.trim().toLowerCase(Locale.ROOT);
+                if (!processed.isEmpty()) {
+                    result.add(processed);
+                }
             }
         } else {
-            result.add(input.trim().toLowerCase(Locale.ROOT));
+            String processed = input.trim().toLowerCase(Locale.ROOT);
+            if (!processed.isEmpty()) {
+                result.add(processed);
+            }
         }
 
         return result;
