@@ -152,8 +152,22 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             return Calculations.random(300,800);
         }
         if (eggWieldCheck) {
+            if (Inventory.isFull()) {
+                if (!Bank.isOpen()) {
+                    if (Walking.shouldWalk()) {
+                        Bank.open();
+                        Sleep.sleepTicks(Calculations.random(1,7));
+                    }
+                    return Calculations.random(300,800);
+                }
+                Bank.depositAllEquipment();
+                Sleep.sleepTicks(2);
+                eggWieldCheck = false;
+                return Calculations.random(300,800);
+            }
             Equipment.interact(EquipmentSlot.WEAPON, "Remove");
             Sleep.sleepTicks(2);
+            eggWieldCheck = false;
             return Calculations.random(300,800);
         }
 
