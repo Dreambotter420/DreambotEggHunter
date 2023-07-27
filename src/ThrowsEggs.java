@@ -29,6 +29,7 @@ import paint.PaintInfo;
 
 import java.awt.*;
 import java.time.Instant;
+import java.time.temporal.TemporalAmount;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -246,7 +247,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             Logger.log("Have something in our hands, gonna unequip w3p0n");
         } else if(playerIron) {
             Logger.log("Skipping ironmeme: " + p.getName());
-            busiedPlayers.put(p.getName(), Instant.ofEpochMilli(Long.MAX_VALUE));
+            busiedPlayers.put(p.getName(), Instant.now().plusSeconds(60 * 60 * 24 * 365)); //check again in a year
             playerIron = false;
         } else {
             Logger.log("PLAYER: " + p.getName() + " WAS THE ONE THAT GOT AWAY NOOOO");
@@ -290,12 +291,11 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             if (message.getMessage().contains("won't thank you for chucking stuff")) {
                 playerBusy = true;
             }
-            if (message.getMessage().contains("is an Iron") && message.getMessage().contains("stands with")) {
+            if (message.getMessage().contains("is an Iron")) {
                 playerIron = true;
             }
             return;
         }
-        Logger.log("Outside msg ("+message.getType().toString()+"): " +message.getMessage());
     }
     @Override
     public String[] getPaintInfo()
