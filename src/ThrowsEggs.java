@@ -18,7 +18,6 @@ import org.dreambot.api.script.ScriptManifest;
 import org.dreambot.api.script.listener.ChatListener;
 import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
-import org.dreambot.api.utilities.Timer;
 import org.dreambot.api.wrappers.interactive.NPC;
 import org.dreambot.api.wrappers.interactive.Player;
 import org.dreambot.api.wrappers.items.Item;
@@ -27,11 +26,11 @@ import org.dreambot.api.wrappers.widgets.message.MessageType;
 import paint.CustomPaint;
 import paint.PaintInfo;
 
+import javax.swing.*;
 import java.awt.*;
 import java.time.Instant;
-import java.time.temporal.TemporalAmount;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 
 @ScriptManifest(
         name = "Egg Thrower",
@@ -51,14 +50,40 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
     public static boolean buyMoreEggs = false;
 
     public static boolean noMoCoins = false;
+    public static List<String> targets = new ArrayList<>();
 
     final int GREEN_EGG = 22358;
     final int BLUE_EGG = 22355;
     final int RED_EGG = 22361;
     final Tile DIANGO_TILE = new Tile(3081,3247,0);
+    private static GUI gui;
     final Filter<Item> eggFilter = i -> i.getName().equals("Holy handegg") || i.getName().equals("Peaceful handegg") || i.getName().equals("Chaotic handegg");
     @Override
+    public void onStart(String[] args) {
+        start();
+    }
+    @Override
+    public void onStart() {
+        start();
+    }
+    public static void start() {
+        SwingUtilities.invokeLater(
+                () -> {
+                    gui = new GUI();
+                });
+    }
+    @Override
+    public void onExit() {
+        gui.close();
+    }
+    @Override
     public int onLoop() {
+        if (GUI.stopScript) {
+            return -1;
+        }
+        if (!GUI.startLoop) {
+            return 100;
+        }
         eggStock = Bank.count(eggFilter) + Inventory.count(eggFilter);
         if (!Walking.isRunEnabled() && Walking.getRunEnergy() > 10 ) {
             if (Walking.toggleRun()) {
@@ -197,6 +222,17 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
         if (Bank.isOpen()) {
             Bank.close();
             return Calculations.random(300,800);
+        }
+        if (!targets.isEmpty()) {
+            Player needsEgg = Players.closest(p -> targets.stream().anyMatch(name -> p.getName().toLowerCase(Locale.ROOT).contains(name)));
+            if (needsEgg != null) {
+                if (!playerNeedsEgg(needsEgg)) {
+                    return Calculations.random(50,200);
+                }
+                useEggOnPlayer(egg, needsEgg);
+                Sleep.sleepTick();
+                return Calculations.random(300,800);
+            }
         }
         for (Map.Entry<String, Instant> oldBusyPlayer : busiedPlayers.entrySet()) {
             if (Instant.now().isBefore(oldBusyPlayer.getValue())) {
