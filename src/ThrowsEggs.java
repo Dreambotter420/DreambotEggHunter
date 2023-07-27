@@ -256,7 +256,6 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
         return eggWieldCheck || playerBusy || eggThrown || playerIron;
     }
     public static boolean playerNeedsEgg(Player p) {
-        Logger.log("PlayerComposition for " +p.getName()+": "+p.getComposite().getAppearance()[3]);
         return p.getComposite().getAppearance()[3] <= 512;
     }
 
