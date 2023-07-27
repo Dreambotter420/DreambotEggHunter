@@ -188,7 +188,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
                 continue;
             }
             Player playerNeedsEgg = Players.closest(p -> p.getName().equals(oldBusyPlayer.getKey()));
-            if (playerNeedsEgg == null) {
+            if (playerNeedsEgg == null || !playerNeedsEgg(playerNeedsEgg)) {
                 busiedPlayers.remove(oldBusyPlayer.getKey());
             }
             useEggOnPlayer(egg, playerNeedsEgg);
@@ -232,7 +232,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             Logger.log("Have something in our hands, gonna unequip w3p0n");
         } else if(playerIron) {
             Logger.log("Skipping ironmeme: " + p.getName());
-            busiedPlayers.put(p.getName(), Instant.now().plusSeconds(Long.MAX_VALUE));
+            busiedPlayers.put(p.getName(), Instant.ofEpochMilli(Long.MAX_VALUE));
             playerIron = false;
         } else {
             Logger.log("PLAYER: " + p.getName() + " WAS THE ONE THAT GOT AWAY NOOOO");
@@ -242,6 +242,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
         return eggWieldCheck || playerBusy || eggThrown || playerIron;
     }
     public static boolean playerNeedsEgg(Player p) {
+        Logger.log("PlayerComposition for " +p.getName()+": "+p.getComposite().getAppearance()[3]);
         return p.getComposite().getAppearance()[3] <= 512;
     }
 
