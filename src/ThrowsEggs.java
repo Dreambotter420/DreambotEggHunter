@@ -47,7 +47,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
     public static boolean playerIron = false;
     public static int eggCount = 0;
     public static int eggStock = 0;
-    public static boolean buyMoreEggs = true;
+    public static boolean buyMoreEggs = false;
 
     public static boolean noMoCoins = false;
 
