@@ -75,6 +75,7 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
     final Tile DIANGO_TILE = new Tile(3081,3247,0);
     private static GUI gui;
     final Filter<Item> eggFilter = i -> i.getName().equals("Holy handegg") || i.getName().equals("Peaceful handegg") || i.getName().equals("Chaotic handegg");
+    final Filter<Item> notEggFilter = i -> !i.getName().equals("Holy handegg") && !i.getName().equals("Peaceful handegg") && !i.getName().equals("Chaotic handegg");
 
     private static Thread replThread = null;
     public static volatile boolean stopReplThread = false;
@@ -235,7 +236,8 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             Collections.shuffle(eggz);
             egg = eggz.get(0);
         }
-        if (egg == null) {
+        List<Item> notEggItems = Inventory.all(notEggFilter);
+        if (egg == null || (notEggItems != null && !notEggItems.isEmpty())) {
             if (!Bank.isOpen()) {
                 if (Walking.shouldWalk()) {
                     Bank.open();
@@ -246,6 +248,20 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
             if (!Bank.contains(eggFilter)) {
                 Logger.log("No more eggs ! Buying more...");
                 buyMoreEggs = true;
+            }
+            List<Integer> alreadyDeposited = new ArrayList<>();
+            for (Item i : notEggItems) {
+                if (i == null || !i.isValid() || i.getID() <= 0 || i.getName() == null || i.getName().equals("null") || alreadyDeposited.contains(i.getID())) {
+                    continue;
+                }
+                Logger.log("Depositing item: " +i.toString());
+                Bank.depositAll(i);
+                Sleep.sleep(Calculations.random(100, 400));
+                alreadyDeposited.add(i.getID());
+            }
+            if (!alreadyDeposited.isEmpty()) {
+                Sleep.sleepTick();
+                return Calculations.random(300,800);
             }
             if (Bank.getWithdrawMode() != BankMode.ITEM) {
                 Bank.setWithdrawMode(BankMode.ITEM);
@@ -277,6 +293,14 @@ public class ThrowsEggs extends AbstractScript implements ChatListener, PaintInf
                 remaining = 0;
             }
             Sleep.sleepTick();
+            return Calculations.random(300,800);
+        }
+        if (notEggItems != null && !notEggItems.isEmpty()) {
+            //have eggs AND other items here
+            if (Walking.shouldWalk()) {
+                Bank.open();
+                Sleep.sleepTicks(Calculations.random(1,7));
+            }
             return Calculations.random(300,800);
         }
         if (Bank.isOpen()) {
